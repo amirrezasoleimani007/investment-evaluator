@@ -1,9 +1,9 @@
-name: Publish IPS Dashboard
+name: Deploy IPS dashboard to GitHub Pages
 
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - .github/workflows/deploy-ips-dashboard.yml
   workflow_dispatch:
@@ -18,43 +18,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout IPS dashboard source
-        uses: actions/checkout@v4
-        with:
-          ref: ips-dashboard
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Enable GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build static dashboard
-        run: npm run build:pages
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist-pages
-
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout ready static dashboard
+        uses: actions/checkout@v4
+        with:
+          ref: ips-dashboard
+          path: site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload ready site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
