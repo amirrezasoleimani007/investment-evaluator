@@ -1,6 +1,6 @@
 name: Deploy IPS dashboard to GitHub Pages
 
-# Deployment trigger: IPS dashboard version 24
+# Deployment trigger: IPS dashboard version 24 — bootstrap fix
 on:
   push:
     branches:
