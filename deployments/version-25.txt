@@ -1,0 +1,4 @@
+IPS Financial Dashboard — Version 25
+Published: 2026-08-14
+Static commit: e7716106c45615d0c1753e494b0a3bff3cee58a6
+Final UX retouch, readable typography, enhanced scatter motion, and resilient GitHub Pages bootstrap.
