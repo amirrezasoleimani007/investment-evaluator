@@ -1,2 +1,3 @@
 IPS Financial Dashboard — Version 24
 Published: 2026-08-14
+Transfer fix: chunked bootstrap
