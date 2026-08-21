@@ -1,0 +1,4 @@
+IPS Financial Dashboard — Version 30
+Published: 2026-08-21
+Static commit: e1defa22c886006dc4dd168badfef70069df1fdb
+Deterministic 6,561-combination Financial Watch policy engine, Persian value-creation labels, and GitHub Pages-safe Rule Book bootstrap.
