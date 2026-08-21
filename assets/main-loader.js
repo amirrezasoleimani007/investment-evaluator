@@ -1,4 +1,4 @@
-const partNames=["index-v25.part-00","index-v25.part-01","index-v25.part-02","index-v25.part-03","index-v25.part-04"];
+const partNames=["index-v30.part-00","index-v30.part-01","index-v30.part-02","index-v30.part-03","index-v30.part-04"];
 const baseUrl=new URL("./",import.meta.url);
 const sourceParts=await Promise.all(partNames.map(async(name)=>{
   const response=await fetch(new URL(name,baseUrl));
