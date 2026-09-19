@@ -40,9 +40,52 @@
 <footer class="foot">Project Executive Cockpit · ساختار قابل استفاده مجدد برای پروژه‌های مشابه</footer>
 </div>
 <script>
-const pages=['dash','act','fin','qa'];document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');pages.forEach(p=>document.getElementById(p).classList.toggle('hidden',p!==b.dataset.page))});
-document.getElementById('sample').onclick=()=>location.reload();
-document.getElementById('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});document.getElementById('title').textContent='داشبورد مدیریتی · '+f.name.replace(/.[^.]+$/,'');document.getElementById('meta').textContent='فایل بارگذاری شد · شیت‌ها: '+wb.SheetNames.join('، ');alert('فایل با موفقیت خوانده شد. نسخه فعلی برای نمایش نمونه، ساختار را تشخیص می‌دهد و در مرحله بعد می‌توان نگاشت کامل هر ستون را فعال کرد.')}catch(err){alert('خواندن فایل ناموفق بود: '+err.message)}};
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[d]);
+const fmt=n=>Number.isFinite(n)?fa(n.toLocaleString("en-US",{maximumFractionDigits:2})):"—";
+const pct=n=>Number.isFinite(n)?fmt(n*100)+"٪":"—";
+const norm=s=>String(s??"").replace(/[\u200c\u200f\u202a-\u202e]/g,"").replace(/[يى]/g,"ی").replace(/ك/g,"ک").trim();
+const num=v=>{if(v===null||v===undefined||v===""||v===".")return null;let s=String(v).replace(/,/g,"").replace(/٪/g,"").replace(/٫/g,".");let n=Number(s);return Number.isFinite(n)?n:null};
+let state=null;
+function rows(ws){return XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});}
+function physical(rs){
+ const h=rs[4]||[], acts=[];
+ for(let r=5;r<rs.length;r++){let name=rs[r][1],w=num(rs[r][5]);if(!name||norm(name)==="مجموع"||w===null)continue;acts.push({r,name:String(name),w});}
+ if(!acts.length)return null;
+ const periods=[];let month="";
+ for(let c=6;c<h.length;c+=2){if(rs[2]&&rs[2][c])month=String(rs[2][c]);let wk=rs[3]&&rs[3][c]?String(rs[3][c]):"دوره "+(periods.length+1);periods.push({p:c,a:c+1,label:(month+" · "+wk).trim()});}
+ return {rs,acts,periods,total:rs.findIndex(r=>norm(r[0])==="مجموع")};
+}
+function finance(rs){
+ const h=rs[4]||[], items=[], total=rs.findIndex(r=>norm(r[0])==="مجموع");
+ for(let r=5;r<rs.length;r++){let name=rs[r][1],cost=num(rs[r][5]);if(name&&norm(name)!=="مجموع"&&cost!==null)items.push({name:String(name),cost});}
+ const periods=[];let month="";
+ for(let c=6;c<h.length;c+=2){if(rs[2]&&rs[2][c])month=String(rs[2][c]);let wk=rs[3]&&rs[3][c]?String(rs[3][c]):"دوره "+(periods.length+1);periods.push({b:c,p:c+1,label:(month+" · "+wk).trim()});}
+ return {rs,items,periods,total};
+}
+function series(p){
+ return p.periods.map(x=>{let plan=0,actual=0;for(const a of p.acts){const w=a.w;plan+=w*(num(p.rs[a.r][x.p])??0);actual+=w*(num(p.rs[a.r][x.a])??0)}return {...x,plan,actual}});
+}
+function financeSeries(f){return f.periods.map(x=>{let b=f.total>=0?num(f.rs[f.total][x.b]):null,p=f.total>=0?num(f.rs[f.total][x.p]):null;return {...x,budget:b,paid:p}})}
+function renderChart(s){const W=800,H=300,L=55,R=25,T=25,B=45,max=1;const x=i=>L+i*((W-L-R)/Math.max(1,s.length-1)),y=v=>T+(H-T-B)*(1-Math.min(1,Math.max(0,v)));const pts=a=>a.map((v,i)=>x(i)+","+y(v)).join(" ");$("chart").innerHTML='<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'" stroke="#e9eef5"/><polyline fill="none" stroke="#2463eb" stroke-width="4" points="'+pts(s.map(z=>z.plan))+'"/><polyline fill="none" stroke="#12b981" stroke-width="4" points="'+pts(s.map(z=>z.actual))+'"/>'+s.map((z,i)=>'<circle cx="'+x(i)+'" cy="'+y(z.plan)+'" r="4" fill="#2463eb"/><circle cx="'+x(i)+'" cy="'+y(z.actual)+'" r="4" fill="#12b981"/><text x="'+x(i)+'" y="'+(H-18)+'" text-anchor="middle" font-size="10" fill="#738096">'+String(z.label).slice(-12)+'</text>').join("")}
+function render(){const p=state.p,f=state.f,s=series(p),cur=s[s.length-1],fs=f?financeSeries(f):[],fc=fs[fs.length-1];
+ $("k0").textContent=pct(cur.plan);$("k1").textContent=pct(cur.actual);$("k2").textContent=pct(cur.actual-cur.plan);
+ $("k3").textContent=f?fmt(f.items.reduce((a,x)=>a+x.cost,0)):"—";$("k4").textContent=fc?fmt(fc.budget/1e9):"—";$("k5").textContent=fc?fmt(fc.paid/1e9):"—";
+ $("s0").textContent="آخرین دوره فایل";$("s1").textContent="محاسبه مستقیم از فعالیت‌ها";$("s2").textContent="عملکرد منهای برنامه";$("s3").textContent=f?"میلیارد تومان":"—";$("s4").textContent=f?"آخرین بودجه تجمعی":"—";$("s5").textContent=f?"آخرین پرداخت تجمعی":"—";
+ $("period").textContent=cur.label||"آخرین دوره";renderChart(s);
+ const gap=Math.abs(cur.actual-cur.plan),score=Math.max(0,Math.min(100,100-gap*100));$("score").textContent=fa(Math.round(score));$("ring").style.background="conic-gradient(var(--green) 0 "+score+"%,#e9eef5 "+score+"%)";$("status").textContent=gap<.02?"در محدوده کنترل":"نیازمند اقدام";$("status").style.color=gap<.02?"var(--green)":"var(--red)";
+ $("summary").textContent="پیشرفت این صفحه از ردیف‌های خام فعالیت‌ها و وزن آن‌ها محاسبه شده و به جمع اکسل وابسته نیست.";
+ const ws=p.acts.reduce((a,x)=>a+x.w,0),warnings=[];if(Math.abs(ws-1)>.01)warnings.push("جمع وزن فعالیت‌ها برابر ۱۰۰٪ نیست.");if(s.some((x,i)=>i&&x.actual<s[i-1].actual-.001))warnings.push("کاهش پیشرفت واقعی بین دوره‌ها دیده شد.");if(f&&f.total<0)warnings.push("ردیف مجموع شیت مالی پیدا نشد.");
+ $("warnings").textContent=fa(warnings.length);$("errors").textContent=fa(0);
+ $("bars").innerHTML='<div class="bar"><label><span>پیشرفت واقعی</span><b>'+pct(cur.actual)+'</b></label><div class="track"><div class="fill" style="width:'+Math.min(100,Math.max(0,cur.actual*100))+'%"></div></div></div>';
+ $("activityBody").innerHTML=p.acts.map(a=>{let plan=num(p.rs[a.r][cur.p])??0,act=num(p.rs[a.r][cur.a])??0,g=act-plan;return '<tr><td>'+a.name+'</td><td>'+pct(a.w)+'</td><td>'+pct(plan)+'</td><td>'+pct(act)+'</td><td>'+pct(g)+'</td><td><span class="pill '+(g<-.005?"lag":g>.005?"ok":"neutral")+'">'+(g<-.005?"عقب‌افتاده":g>.005?"جلوتر":"طبق برنامه")+'</span></td></tr>'}).join("");
+ if(f){$("fcost").textContent=fmt(f.items.reduce((a,x)=>a+x.cost,0));$("fbudget").textContent=fc?fmt(fc.budget/1e9):"—";$("fpaid").textContent=fc?fmt(fc.paid/1e9):"—";$("financeBody").innerHTML=fs.map(x=>'<tr><td>'+x.label+'</td><td>'+fmt((x.budget??0)/1e9)+'</td><td>'+fmt((x.paid??0)/1e9)+'</td></tr>').join("")}
+ $("qaBody").innerHTML='<div class="q"><b>فعالیت‌ها</b><span>'+fa(p.acts.length)+' ردیف</span></div><div class="q"><b>دوره‌ها</b><span>'+fa(p.periods.length)+' دوره</span></div><div class="q"><b>جمع وزن</b><span>'+pct(ws)+' · '+(Math.abs(ws-1)<=.01?"قابل قبول":"نیازمند بررسی")+'</span></div><div class="q"><b>هشدارهای منطقی</b><span>'+fa(warnings.length)+' مورد</span></div>';
+ $("alerts").innerHTML=(warnings.length?'<div class="alert warn"><b>هشدار کیفیت داده</b><p>'+warnings.join(" · ")+'</p></div>':'<div class="alert good"><b>کنترل داده</b><p>در کنترل‌های پایه، هشدار مهمی شناسایی نشد.</p></div>')+'<div class="alert '+(gap<.02?"good":"bad")+'"><b>انحراف پیشرفت</b><p>فاصله برنامه و عملکرد آخرین دوره <strong>'+pct(gap)+'</strong> است.</p></div>';
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["dash","act","fin","qa"].forEach(p=>$(p).classList.toggle("hidden",p!==b.dataset.page))});
+$("reset").onclick=()=>location.reload();
+$("file").onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});const sh=wb.SheetNames.map(n=>({n,rs:rows(wb.Sheets[n])}));const p=sh.map(x=>physical(x.rs)).find(Boolean),f=sh.map(x=>finance(x.rs)).find(Boolean);if(!p)throw Error("شیت پیشرفت فیزیکی با ساختار استاندارد پیدا نشد.");state={p,f};$("title").textContent="داشبورد مدیریتی · "+file.name.replace(/\.[^.]+$/,"");$("meta").textContent="فایل واقعی بارگذاری شد · "+fa(p.acts.length)+" فعالیت · "+fa(p.periods.length)+" دوره";render()}catch(err){alert("خواندن فایل ناموفق بود: "+err.message)}};
 </script>
 </body>
 </html>
