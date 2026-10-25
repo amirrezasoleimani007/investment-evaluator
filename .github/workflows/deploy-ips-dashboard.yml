@@ -1,0 +1,48 @@
+name: Deploy IPS dashboard to GitHub Pages
+
+# Deployment trigger: Atieh financial dashboard v50 (2026-10-25); preserve project dashboard
+on:
+  push:
+    branches:
+      - ips-dashboard
+    paths:
+      - index.html
+      - releases/**
+      - .github/workflows/deploy-ips-dashboard.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ips-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ready static dashboard
+        uses: actions/checkout@v4
+        with:
+          ref: ips-dashboard
+          path: site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload ready site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
