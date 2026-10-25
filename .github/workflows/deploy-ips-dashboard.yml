@@ -1,6 +1,6 @@
 name: Deploy IPS dashboard to GitHub Pages
 
-# Deployment trigger: IPS dashboard + project executive dashboard
+# Deployment trigger: Atieh financial dashboard v50 (2026-10-25); preserve project dashboard
 on:
   push:
     branches:

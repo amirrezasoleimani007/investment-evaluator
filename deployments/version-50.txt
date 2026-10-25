@@ -1,0 +1,4 @@
+Atieh Financial Dashboard — Version 50
+Static commit: 2c07a2e7d4f2ae1e9ffea91e8487f793e862005f
+Motion introduction, management workspace, shared navigation and reproducible source.
+No user spreadsheets or financial workspace backups are included.
